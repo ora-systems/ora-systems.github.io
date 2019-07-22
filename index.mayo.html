@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8">
+<title>Halo</title>
+<script src="main.web.js"></script>
+<style>
+body {
+    overflow: hidden;
+    margin :0;
+    background: #555;
+    font-family: 'Andale Mono', Arial, sans-serif;
+    font-size: 14px;
+}
+
+input, form, button, textarea {
+    font-family: monospace;
+    font-size: 14px;
+}
+
+body * {
+    margin: 0;
+    padding: 0;
+}
+
+#container {
+    display: flex;
+    height: 100%;
+}
+#haloCanvas {
+    width: 800px;
+}
+#sidebar {
+    flex: 1;
+    background: white;
+    padding: 1em;
+}
+
+textarea {
+    width: 100%;
+    height: 5rem;
+    padding: 0.5rem;
+}
+button {
+    padding: 0.5em;
+    border-radius: 5px;
+    border: 1px solid #555;
+    background: #FFF;
+    margin-top: 1rem;
+}
+button:hover {
+    cursor: pointer;
+    border-color: red;
+}
+button:active {
+    color: #000;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+p {
+    margin: 1rem 0;
+    line-height: 150%;
+}
+
+h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+code {
+    display: block;
+    background: #EEE;
+    padding: 1rem;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+    <canvas id="haloCanvas" width="600" height="600"></canvas>
+</div>
+<script>
+
+var MAX_RINGS_FOR_ACTIVITY = 6;
+
+function HaloMayoSetHourValues(yesterday, today) {
+    HaloResetTimeStamps();
+
+    var numRingsYesterday = yesterday.reduce(function(totalRings, hour) {
+        return totalRings + Math.floor(hour.activity * MAX_RINGS_FOR_ACTIVITY);
+    }, 0)
+
+    var numRingsToday = today.reduce(function(totalRings, hour) {
+        return totalRings + Math.floor(hour.activity * MAX_RINGS_FOR_ACTIVITY);
+    }, 0)
+
+    for(var i = 0; i < today.length; i++) {
+        var hourlyValue = today[i];
+        for(var j = 0; j < hourlyValue.activity * MAX_RINGS_FOR_ACTIVITY; j++) {
+            HaloAddTimeStamp({
+                color: hourlyValue.energy,
+                complexity: 0.5,
+                lineType: hourlyValue.active,
+                opacity: 1
+            })
+        }
+    }
+
+    for(var i=0; i<numRingsYesterday - numRingsToday; i++) {
+        HaloAddTimeStamp({
+            color: -1,
+            complexity: 0.5,
+            lineType: 0,
+            opacity: 0.25
+        })
+    }
+}
+
+HaloInitialize({
+    width: 800,
+    height: 600,
+    fullscreen: true,
+    gui: true,
+    limitedGUI: true
+});
+
+HaloSetMode('timeline');
+
+HaloSetGlobalParams({
+  size: 1,
+  color: 0.67,
+  complexity: 0.7,
+  speed: 0.5,
+  brightness: 1,
+  wobble: 0.1,
+  background: '000000',
+  growth: 0.05,
+  scale: 100,
+  solidLines: false,
+  showGrid: true,
+  evenLineDistribution: true,
+  minRingRadius: 0.5,
+  showGrid: false,
+  maxNumRings: 50,
+  showAuraAtRing: -1
+  //spectrum: ['FF0000', '00FF00', '0000FF']
+})
+
+//HourlyParameters:
+//- activity: 0..1   //ACTIVITY (hourly ring accumulation and total HALO size)
+//- energy: 0..1     //ENERGY EXPENDITURE (ring colour)
+//- active: 0-dots or 1-solid   //SEDENTARY VS ACTIVE (ring structure + wobble movement)
+
+var yesterday = [
+    { activity: 0.0, energy: 0.0, active: 0},   //00:00
+    { activity: 0.0, energy: 0.0, active: 0},   //01:00
+    { activity: 0.0, energy: 0.0, active: 0},   //02:00
+    { activity: 0.0, energy: 0.0, active: 0},   //03:00
+    { activity: 0.0, energy: 0.0, active: 0},   //04:00
+    { activity: 0.0, energy: 0.0, active: 0},   //05:00
+    { activity: 0.0, energy: 0.0, active: 0},   //06:00
+    { activity: 0.1, energy: 0.1, active: 0},   //07:00
+    { activity: 0.2, energy: 0.2, active: 0},   //08:00
+    { activity: 0.3, energy: 0.3, active: 1},   //09:00
+    { activity: 0.1, energy: 0.2, active: 0},   //10:00
+    { activity: 0.3, energy: 0.2, active: 0},   //11:00
+    { activity: 0.3, energy: 0.2, active: 0},   //12:00
+    { activity: 0.3, energy: 0.2, active: 0},   //13:00
+    { activity: 0.4, energy: 0.5, active: 0},   //14:00
+    { activity: 0.5, energy: 0.7, active: 1},   //15:00
+    { activity: 0.6, energy: 0.8, active: 1},   //16:00
+    { activity: 0.7, energy: 0.8, active: 1},   //17:00
+    { activity: 0.8, energy: 1.0, active: 1},   //18:00
+    { activity: 0.9, energy: 1.0, active: 1},   //19:00
+    { activity: 0.9, energy: 0.3, active: 1},   //20:00
+    { activity: 0.2, energy: 0.1, active: 0},   //21:00
+    { activity: 0.1, energy: 0.0, active: 0},   //22:00
+    { activity: 0.0, energy: 0.0, active: 0}    //23:00
+]
+
+var today = [
+    { activity: 0.0, energy: 0.0, active: 0},   //00:00
+    { activity: 0.0, energy: 0.0, active: 0},   //01:00
+    { activity: 0.0, energy: 0.0, active: 0},   //02:00
+    { activity: 0.0, energy: 0.0, active: 0},   //03:00
+    { activity: 0.0, energy: 0.0, active: 0},   //04:00
+    { activity: 0.0, energy: 0.0, active: 0},   //05:00
+    { activity: 0.0, energy: 0.0, active: 0},   //06:00
+    { activity: 0.1, energy: 0.1, active: 0},   //07:00
+    { activity: 0.2, energy: 0.2, active: 0},   //08:00
+    { activity: 0.3, energy: 0.3, active: 1},   //09:00
+    { activity: 0.1, energy: 0.2, active: 0},   //10:00
+    { activity: 0.1, energy: 0.2, active: 0},   //11:00
+    { activity: 0.2, energy: 0.2, active: 0},   //12:00
+    { activity: 0.1, energy: 0.2, active: 0},   //13:00
+    { activity: 0.1, energy: 0.5, active: 0},   //14:00
+    { activity: 0.6, energy: 0.7, active: 1},   //15:00
+    { activity: 0.8, energy: 0.8, active: 1},   //16:00
+    { activity: 0.8, energy: 0.8, active: 1},   //17:00
+    { activity: 1.0, energy: 1.0, active: 1},   //18:00
+    { activity: 1.0, energy: 1.0, active: 1},   //19:00
+    { activity: 0.3, energy: 0.3, active: 1},   //20:00
+    { activity: 0.2, energy: 0.1, active: 0},   //21:00
+    { activity: 0.1, energy: 0.0, active: 0},   //22:00
+    { activity: 0.0, energy: 0.0, active: 0}    //23:00
+]
+
+var todayMorning = [
+    { activity: 0.0, energy: 0.0, active: 0},   //00:00
+    { activity: 0.0, energy: 0.0, active: 0},   //01:00
+    { activity: 0.0, energy: 0.0, active: 0},   //02:00
+    { activity: 0.0, energy: 0.0, active: 0},   //03:00
+    { activity: 0.0, energy: 0.0, active: 0},   //04:00
+    { activity: 0.0, energy: 0.0, active: 0},   //05:00
+    { activity: 0.0, energy: 0.0, active: 0},   //06:00
+    { activity: 0.1, energy: 0.1, active: 0},   //07:00
+    { activity: 0.2, energy: 0.2, active: 0},   //08:00
+    { activity: 0.3, energy: 0.3, active: 1},   //09:00
+    { activity: 0.4, energy: 0.5, active: 1},   //10:00
+    { activity: 0.6, energy: 0.3, active: 1},   //11:00
+    { activity: 0.0, energy: 0.0, active: 0},   //12:00
+    { activity: 0.0, energy: 0.0, active: 0},   //13:00
+    { activity: 0.0, energy: 0.0, active: 0},   //14:00
+    { activity: 0.0, energy: 0.0, active: 0},   //15:00
+    { activity: 0.0, energy: 0.0, active: 0},   //16:00
+    { activity: 0.0, energy: 0.0, active: 0},   //17:00
+    { activity: 0.0, energy: 1.0, active: 0},   //18:00
+    { activity: 0.0, energy: 1.0, active: 0},   //19:00
+    { activity: 0.0, energy: 0.0, active: 0},   //20:00
+    { activity: 0.0, energy: 0.0, active: 0},   //21:00
+    { activity: 0.0, energy: 0.0, active: 0},   //22:00
+    { activity: 0.0, energy: 0.0, active: 0}    //23:00
+]
+
+HaloMayoSetHourValues(yesterday, today); //Big bright Halo
+//HaloMayoSetHourValues(yesterday, todayMorning); //Small halo
+
+//Need to clarify these calculation with Peter or Blunt
+//
+HaloSetGlobalParams({ complexity: 0.5 })
+
+//EXERCISE OPTIMAL THRESHOLD (wobble movement)
+HaloSetGlobalParams({ wobble: 0.5, wobbleFadeout: 0.9 /*center influence*/ })
+
+
+
+//DAILY ACTIVITY OPTIMAL THRESHOLD (radiating waves)
+HaloSetGlobalParams({ waveCount: 2, waveSpeed: 0.5, waveColor: 0.2 })
+
+</script>
+</script>
+</body>
+</html>

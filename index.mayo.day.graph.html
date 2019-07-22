@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8">
+<title>Halo</title>
+<style>
+body { font-family: arial; margin: 0; overflow: hidden; background: #444444; text-align: center;}
+canvas { margin: 20px 0 10px 0; border: 10px solid black;}
+a { color: white; }
+#bigHalo {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+}
+#info {
+    color: white;
+    text-align: center;
+    margin-left: 1em;
+    line-height: 150%;
+}
+</style>
+</head>
+<body>
+<br/>
+<br/>
+<a href="javascript:showDay('crtn1')">crtn1</a>
+<a href="javascript:showDay('crtn2')">crtn2</a>
+<a href="javascript:showDay('crtn3')">crtn3</a>
+<a href="javascript:showDay('crtn4')">crtn4</a>
+<a href="javascript:showDay('crtn5')">crtn5</a>
+<a href="javascript:showDay('stephen1')">Stephen Apr 27th</a>
+<a href="javascript:showDay('stephen2')">Stephen Apr 29th</a>
+<a href="javascript:showDay('stephen3')">Stephen May 1st</a>
+<a href="javascript:showDay('stephen4')">Stephen May 5th</a>
+<a href="javascript:showDay('stephen5')">Stephen May 6th</a>
+<a href="javascript:showDay('stephen6')">Stephen May 7th</a>
+<br/>
+<canvas width="1280" height="200" id="graph"></canvas>
+<div id="info">bla</div>
+<script src="main.web.js"></script>
+<script src="app-mayo/mayo-halo-controller.js"></script>
+<script src="data/mayo-data.js"></script>
+<script src="data/export-stephen-2016-04-27.js"></script>
+<script src="data/export-stephen-2016-04-29.js"></script>
+<script src="data/export-stephen-2016-05-01.js"></script>
+<script src="data/export-stephen-2016-05-05.js"></script>
+<script src="data/export-stephen-2016-05-06.js"></script>
+<script src="data/export-stephen-2016-05-07.js"></script>
+<!--<iframe src="index.html" frameborder="0" id="bigHalo"></iframe>-->
+<script>
+
+function showDay(dayId) {
+    document.location.hash = dayId;
+    document.location.reload();
+}
+
+function remap(n, oldmin, oldmax, newmin, newmax) {
+    return newmin + (n - oldmin) / (oldmax - oldmin) * (newmax - newmin)
+}
+
+/*
+MetricInterval
+cdist: 0
+deviceOn: true
+dist: 0
+flights: 0
+hcount: 0
+heart: "-"
+htot: 0
+kcal: 0.045
+label: "21:00"
+met: 0.0007142857142857143
+steps: 0
+stood: 0
+ */
+
+window.addEventListener('load', function() {
+    var dayId = 'crtn4';
+    var timeIndex = 0;
+    if (document.location.hash.length > 0) {
+        var tokens = document.location.hash.substr(1).split(':');
+        dayId = tokens[0];
+        timeIndex = parseInt(tokens[1]);
+    }
+    var day = window[dayId];
+    MayoController.setHistoricalView(true)
+    var here = new Date();
+    offset = here.getTimezoneOffset();
+    //offset = '00' + offset
+    console.log(offset)
+    //+0100
+    day.data.forEach(function(d, i) {
+        var t = d.time;//.replace('+0100', '-0500').replace(' (BST)', '');
+        d.date2 = new Date(t)
+        d.date = new Date(d.date2.getTime() + (offset + 120) * 60 * 1000)
+        d.time = '' + d.date;
+        d.timestamp = d.date.getTime();
+    })
+
+    day.data.sort(function(a, b) {
+        return (a.date.getTime() - b.date.getTime());
+    })
+    console.log('day', day, day.data.length);
+
+    MayoController.setUserData(day.user.birthdate, day.user.height, day.user.weight, day.user.gender);
+    MayoController.resetHKData(day.data);
+    //MayoController.setDisplayMode('stratified');
+
+    var model = MayoController.getModel();
+    var canvas = document.getElementById('graph');
+    var ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth - 100;
+    var W = canvas.width;
+    var H = canvas.height - 20;
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, W, H + 20);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(dayId, 10, 10)
+
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        if (i % 6 == 0) {
+
+            ctx.fillText(metric.label, remap(i, 0, 144, 0, W), H - 10)
+        }
+    }
+
+    //STEPS GRAPH
+    ctx.fillStyle = '#00FF00';
+    ctx.fillText('STEPS', 10, 30)
+    ctx.strokeStyle = '#00FF00';
+    ctx.beginPath();
+    var totalSteps = 0;
+    ctx.moveTo(0, H - 30);
+    console.log('steps', model.map(function(m) { return m.steps; }))
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        totalSteps += metric.steps;
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = Math.min(H-30,Math.max(0, remap(totalSteps, 0, 20000, H - 30, 10))) //14000 max num steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //HR GRAPH
+    ctx.fillStyle = '#ff0000';
+    ctx.fillText('HR Ora', 10, 50)
+    ctx.strokeStyle = '#ff0000';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(metric.heart, 0, 180, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //HR GRAPH
+    ctx.fillStyle = '#ff00ff';
+    ctx.fillText('HR HK', 70, 50)
+    ctx.strokeStyle = '#ff00ff';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30 - 2);
+    for(var i=0; i<day.data.length; i++) {
+        var reading = day.data[i];
+        if (reading.type != "HKQuantityTypeIdentifierHeartRate") continue;
+        var date = new Date(reading.time);
+        var h = date.getHours();
+        var m = date.getMinutes();
+        var t = (h + m/60)/24;
+        var x = remap(t, 0, 1, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(reading.value, 0, 180, H - 30, 10) + 2 //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //RAW STEPS GRAPH
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#00FF99';
+    ctx.fillText('STEPS RAW', 70, 30)
+    ctx.strokeStyle = '#00FF99';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30 - 2);
+    for(var i=0; i<day.data.length; i++) {
+        var reading = day.data[i];
+        if (reading.type != "HKQuantityTypeIdentifierStepCount") continue;
+        var date = new Date(reading.time);
+        var h = date.getHours();
+        var m = date.getMinutes();
+        var t = (h + m/60)/24;
+        var x = remap(t, 0, 1, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(reading.value, 0, 200, H - 30, 10) + 2 //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    //RAW KCAL GRAPH
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = '#00DDFF';
+    ctx.fillText('KCAL RAW', 190, 30)
+    ctx.strokeStyle = '#00DDFF';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30 - 2);
+    for(var i=0; i<day.data.length; i++) {
+        var reading = day.data[i];
+        if (reading.type != "HKQuantityTypeIdentifierBasalEnergyBurned") continue;
+        var date = new Date(reading.time);
+        var h = date.getHours();
+        var m = date.getMinutes();
+        var t = (h + m/60)/24;
+        var x = remap(t, 0, 1, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(Math.max(0, reading.value), 0, 10, H - 35, H - 70) + 2 //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    //COMPLEXITY GRAPH
+    ctx.fillStyle = '#FFFF00';
+    ctx.fillText('COMPLEXITY', 10, 70)
+    ctx.strokeStyle = '#FFFF00';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        MayoController.setTimeIndex(i);
+        var view = MayoController.getView();
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(view.halo.complexity, 0, 1, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //SIZE GRAPH
+    ctx.fillStyle = '#4444FF';
+    ctx.fillText('SIZE', 140, 30)
+    ctx.strokeStyle = '#4444FF';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        MayoController.setTimeIndex(i);
+        var view = MayoController.getView();
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(view.halo.size, 0, 1, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //COLOR GRAPH
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText('COLOR', 10, 90)
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        MayoController.setTimeIndex(i);
+        var view = MayoController.getView();
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(view.halo.color, 0, 1, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //COLOR CENTER GRAPH
+    ctx.fillStyle = '#AAAAAA';
+    ctx.fillText('CENTER', 50, 90)
+    ctx.strokeStyle = '#AAAAAA';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        MayoController.setTimeIndex(i);
+        var view = MayoController.getView();
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(Math.max(0,view.halo.colorCenter), 0, 1, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //COLOR CENTER GRAPH
+    ctx.fillStyle = '#FF9900';
+    ctx.fillText('RATIO', 100, 90)
+    ctx.strokeStyle = '#FF9900';
+    ctx.beginPath();
+    ctx.moveTo(0, H - 30);
+    for(var i=0; i<model.length; i++) {
+        var metric = model[i];
+        MayoController.setTimeIndex(i);
+        var view = MayoController.getView();
+        var x = remap(i, 0, 144, 0, W); //24h * 6 readings @ every 10min
+        var y = remap(Math.max(0,view.halo.colorCenterRatio), 0, 1, H - 30, 10) //180 max hr steps per day
+        ctx.lineTo(x, y)
+    }
+    ctx.stroke();
+
+    //144, 24h * 10min intervals
+    console.log('model', MayoController.getModel().length)
+    console.log('model', MayoController.getModel()[0])
+    console.log('model', MayoController.getModel()[1])
+    console.log('model', MayoController.getModel()[2])
+
+    //wait for halo to initialize, ideally there would be a callback
+    setTimeout(function() {
+        updateAtX(W/2)
+    }, 500)
+
+    canvas.addEventListener('click', function(e) {
+        console.log('layerX', e.layerX, 'clientX', e.clientX)
+        var x = e.layerX - 10; //border
+        updateAtX(x)
+    })
+
+    var Entry = {
+        count: 0
+    }
+    window.addEventListener('keydown', function(e) {
+        if (e.keyIdentifier == "Right") {
+            updateAtX(0, ++Entry.count)
+        }
+        if (e.keyIdentifier == "Left") {
+            updateAtX(0, --Entry.count)
+        }
+    });
+
+    function pad2(n) {
+        return ('00' + n).slice(-2)
+    }
+
+    function updateAtX(x, entry) {
+        var t = x / W;
+        var time = Math.floor(t * 24) + ':' + ((t * 24 - Math.floor(t * 24)) * 60 | 0);
+        var i = 144 * t | 0;
+
+        if (x == 0 && entry >= 0) {
+            var dataCut = day.data.slice(0, entry);
+            MayoController.resetHKData(dataCut);
+            var lastEntry = dataCut[dataCut.length-1];
+            var hours = lastEntry.date.getHours();
+            var minutes = lastEntry.date.getMinutes();
+            x = (hours + minutes/60) / 24 * W;
+            dataTime = 'time: ' + hours + ':' + minutes;
+            t = x / W;
+            time = pad2(Math.floor(t * 24)) + ':' + pad2((t * 24 - Math.floor(t * 24)) * 60 | 0);
+        }
+        else {
+            MayoController.resetHKData(day.data);
+            MayoController.setTimeIndex(i);
+        }
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, H-5, W, 10);
+        ctx.strokeStyle = '#FFFFFF'
+        ctx.beginPath();
+        ctx.moveTo(x, H - 5)
+        ctx.lineTo(x, H + 5)
+        ctx.stroke();
+
+        //window.webkit.messageHandlers.statsRestHR.postMessage(MayoController.getState().heartRest);
+        //window.webkit.messageHandlers.statsExerciseHR.postMessage(MayoController.getState().highHeartAverage);
+        //window.webkit.messageHandlers.statsPeakHR.postMessage(MayoController.getState().peakHeartRate);
+        //window.webkit.messageHandlers.statsExerciseDuration.postMessage(MayoController.getState().exerciseMin);
+        //window.webkit.messageHandlers.statsTotalSteps.postMessage(MayoController.getState().totalSteps)
+        
+        var view = MayoController.getView();
+        var state = MayoController.getState();
+        document.getElementById('info').innerHTML =
+            [
+            'Rest HR', state.heartRest, ', ',
+            'Exercise HR', state.highHeartAverage, ', ',
+            'Peak HR', state.peakHeartRate, ', ',
+            'Exercise Duration', state.exerciseMin, ', ',
+            'Total Steps:',state.totalSteps, ', ',
+            '<br/>',
+            'currentHeartRate:', state.currentHeartRate, ', ',
+            'complexity:', Math.floor(view.halo.complexity*100)/100, ', ',
+            'color:', Math.floor(view.halo.color*100)/100, ', ',
+            'colorCenter:', Math.floor(view.halo.colorCenter*100)/100, ', ',
+            'colorCenterRatio:', Math.floor(view.halo.colorCenterRatio*100)/100, ', ',
+            'size:', Math.floor(view.halo.size*100)/100, ', ',
+            'time:' + time,
+            'data index: ' + entry  ].join(' ')
+
+    }
+})
+</script>
+</body>
+</html>

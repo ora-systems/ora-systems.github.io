@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8">
+<title>Halo</title>
+<script src="main.web.js"></script>
+</head>
+<body style="margin:0; overflow: hidden;">
+<canvas id="haloCanvas" width="800" height="600" style="background: black"></canvas>
+<script>
+
+function splitter(c) {
+    return function(str) {
+        return str.split(c);
+    }
+}
+
+var paramList = document.location.search.replace('?', '').split('&').map(splitter('='));
+var params = paramList.reduce(function(params, param) {
+    params[param[0]] = param[1];
+    return params;
+}, {})
+
+console.log(params)
+
+function PresentScenario() {
+    HaloInitialize({
+      fullscreen: true,
+      gui: true,
+      assetsPath: 'assets',
+      fullScreen: true
+    });
+    HaloSetMode('present');
+    HaloSetGlobalParams({
+      size: params.size || 0.5,
+      color: params.color || 0.01,
+      colorCenter: 0.0,
+      colorCenterRatio: 0.0,
+      complexity: params.complexity || 0.7,
+      speed: 0.5,
+      brightness: 1,
+      wobble: 0.1,
+      background: '000000',
+      growth: 0.05,
+      scale: 100,
+      solidLines: true,
+      showGrid: true,
+      evenLineDistribution: false,
+      minRingRadius: 0.6,
+      showGrid: false,
+      evenLineDistribution: true,
+      maxNumRings: 60,
+      minRingRadius: 0.5,
+      maxRingRadius: 1,
+      showAuraAtRing: -1,
+      auraOpacity: 1,
+      waveCount: 0,
+      highlightRing: 0,
+      //spectrum: ['FF0000', '00FF00', '0000FF'] //custom color spectrum array
+      //colorTexture: 'assets/textures/halo-gradient-new.png' custom color gradient
+    })
+
+    setTimeout(function() {
+        HaloSetGlobalParam('complexity', 0.5)
+        HaloSetGlobalParam('color', 0.63)
+    }, 10)
+}
+
+function TimelineScenario() {
+    HaloInitialize({
+        fullscreen: true,
+        gui: true
+    });
+    HaloSetMode('timeline')
+    HaloSetGlobalParams({
+        size: 1,
+        color: 0.67,
+        complexity: 0.7,
+        speed: 0.75,
+        brightness: 1,
+        wobble: 0.1,
+        background: '000000',
+        growth: 0.05,
+        scale: 100,
+        solidLines: true,
+        showGrid: true,
+        evenLineDistribution: false,
+        minRingRadius: 0.6,
+        showGrid: false,
+        solidLines: true,
+        evenLineDistribution: true,
+        maxNumRings: 60,
+        minRingRadius: 0.6
+      //spectrum: ['FF0000', '00FF00', '0000FF']
+    })
+
+    /*
+
+    var lazyDay = [
+        [0,0,0,0,1,1,1,1,5,6,2,1,1,1,9,1,1],
+        [0,0,0,0,0,0,0,0,1,1,1,0,0,0,1,0,0]
+    ]
+
+    var activeDay = [
+        [1,1,1,5,7,5,8,8,8,7,7,8,9,6,7,7,7,7,3,1,6,5,4,3,2,1,1],
+        [1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0,0]
+    ]
+
+    var currDay = activeDay;
+
+    for(var i=0; i<currDay[1].length; i++) {
+        var value = [];
+        var numDataSeries = 2; //color + line type
+        for(var j=0; j<numDataSeries; j++) {
+            if (currDay[j][i] !== undefined) {
+                value[j] = currDay[j][i];
+            }
+            else {
+                value[j] = prevDay[j][i];
+            }
+        }
+        var isPrevDay = false;
+        var knokckout = false;
+        HaloAddTimeStamp({
+            color: isPrevDay ? -1 : value[0] / 10,
+            complexity: 0.5,
+            lineType: value[1],
+            opacity: knokckout ? 0 : (isPrevDay ? 0.25 : 1)
+        })
+    }
+    */
+}
+
+PresentScenario();
+//TimelineScenario();
+</script>
+</script>
+</body>
+</html>

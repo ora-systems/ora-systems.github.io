@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta charset="UTF-8">
+<title>Halo</title>
+<style>
+body { margin: 0; overflow: hidden; }
+</style>
+<script src="main.web.js"></script>
+<script src="app-mayo/mayo-halo-controller.js"></script>
+<script src="data/mayo-data.js"></script>
+<script>
+
+window.addEventListener('load', function() {
+    var day = crtn4;
+    var timeIndex = 0;
+
+    if (document.location.hash.length > 0) {
+        var tokens = document.location.hash.substr(1).split(':');
+        console.log(tokens)
+        day = window[tokens[0]];
+        timeIndex = parseInt(tokens[1]);
+    }
+    MayoController.setHistoricalView(true);
+    MayoController.setUserData(day.user.birthdate, day.user.height, day.user.weight, day.user.gender);
+    MayoController.resetHKData(day.data);
+
+    //144, 24h * 10min intervals
+    console.log('model', MayoController.getModel().length)
+    console.log('model', MayoController.getModel()[0])
+    console.log('model', MayoController.getModel()[1])
+    console.log('model', MayoController.getModel()[2])
+
+
+
+
+
+    //wait for halo to initialize, ideally there would be a callback
+    setTimeout(function() {
+        MayoController.setTimeIndex(timeIndex);
+    }, 500)
+})
+</script>
+</body>
+</html>

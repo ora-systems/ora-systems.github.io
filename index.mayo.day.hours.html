@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Halo Mayo Hours</title>
+    <style>
+    body {
+        background: #333;
+        color: white;
+        font-family: monospace;
+    }
+    iframe {
+        border: none;
+        margin-right: 3px;
+    }
+    </style>
+</head>
+<body>
+    <script src="data/mayo-data.js"></script>
+    <script src="app-mayo/mayo-halo-controller.js"></script>
+    <script>
+    function HaloInitialize() {}
+    function HaloSetMode() {}
+    function HaloSetGlobalParams() {}
+    var dayId = 'crtn5';
+    var day = window[dayId];
+    console.log(day)
+    MayoController.setHistoricalView(true);
+    MayoController.setUserData(day.user.birthdate, day.user.height, day.user.weight, day.user.gender);
+    MayoController.resetHKData(day.data);
+    var model = MayoController.getModel();
+    console.log(model);
+    document.write('' + dayId + '<br/><br/>');
+    for(var h=0; h<24; h+=2) {
+        var timeIndex = (h*6+1);
+        var steps = 0;
+        for(var i=0; i<timeIndex; i++) {
+            steps += model[i].steps;
+        }
+        var heart = model[timeIndex].heart;
+        document.write('<div style="float:left">')
+        document.write(h + ':00')
+        document.write('<br/>')
+        document.write('steps: ' + steps)
+        document.write('<br/>')
+        document.write('heart: ' + Math.floor(heart))
+        document.write('<br/>')
+        document.write('<br/>')
+        document.write('<iframe src="index.mayo.day.html#'+dayId+':'+timeIndex+'" width="256" height="256"></iframe></div>');
+    }
+
+    </script>
+</body>
+</html>
